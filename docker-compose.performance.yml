@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  new-api:
+    image: calciumion/new-api:latest
+    container_name: new-api-performance
+    restart: always
+    command: --log-dir /app/logs
+    ports:
+      - "8080:3000"
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+      - ./.env.performance:/app/.env
+    environment:
+      - GIN_MODE=release
+      - SQL_MAX_IDLE_CONNS=50
+      - SQL_MAX_OPEN_CONNS=500
+      - SQL_MAX_LIFETIME=300
+      - REDIS_POOL_SIZE=50
+      - BATCH_UPDATE_ENABLED=true
+      - BATCH_UPDATE_INTERVAL=3
+      - ENABLE_PPROF=true
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  redis:
+    image: redis:latest
+    container_name: redis-performance
+    restart: always
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  postgres:
+    image: postgres:15
+    container_name: postgres-performance
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: new-api
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_connections=500
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+volumes:
+  pg_data:

@@ -21,7 +21,7 @@ services:
     restart: always
     command: --log-dir /app/logs
     ports:
-      - "3000:3000"
+      - "8080:3000"
     volumes:
       - ./data:/data
       - ./logs:/app/logs
@@ -32,6 +32,16 @@ services:
       - TZ=Asia/Shanghai
       - ERROR_LOG_ENABLED=true # 是否启用错误日志记录 (Whether to enable error log recording)
       - BATCH_UPDATE_ENABLED=true  # 是否启用批量更新 (Whether to enable batch update)
+      - GIN_MODE=release  # 生产模式优化
+      - SQL_MAX_IDLE_CONNS=50  # 优化数据库连接池
+      - SQL_MAX_OPEN_CONNS=500  # 优化数据库连接池
+      - SQL_MAX_LIFETIME=300  # 连接生命周期5分钟
+      - REDIS_POOL_SIZE=50  # 优化Redis连接池
+      - BATCH_UPDATE_INTERVAL=1  # 激进优化：1秒批量更新
+      - ENABLE_PPROF=true  # 启用性能监控
+      - LOG_CONSUME_ENABLED=false  # 激进优化：禁用消费日志
+      - SYNC_FREQUENCY=300  # 减少同步频率
+      - MEMORY_CACHE_ENABLED=true  # 启用内存缓存
 #      - STREAMING_TIMEOUT=300  # 流模式无响应超时时间，单位秒，默认120秒，如果出现空补全可以尝试改为更大值 （Streaming timeout in seconds, default is 120s. Increase if experiencing empty completions）
 #      - SESSION_SECRET=random_string  # 多机部署时设置，必须修改这个随机字符串！！ （multi-node deployment, set this to a random string!!!!!!!）
 #      - SYNC_FREQUENCY=60  # Uncomment if regular database syncing is needed
@@ -53,6 +63,7 @@ services:
     image: redis:latest
     container_name: redis
     restart: always
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
 
   postgres:
     image: postgres:15
@@ -64,6 +75,17 @@ services:
       POSTGRES_DB: new-api
     volumes:
       - pg_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_connections=500
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
 #    ports:
 #      - "5432:5432"  # Uncomment if you need to access PostgreSQL from outside Docker
 

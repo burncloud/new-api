@@ -256,5 +256,9 @@ func InitResources() error {
 	if err != nil {
 		return err
 	}
+
+	// Initialize Performance Optimizations
+	InitPerformanceOptimizations()
+
 	return nil
 }
