@@ -33,7 +33,7 @@ func InitAsyncLogBuffer() {
 	// 启动异步刷新协程
 	logBuffer.startFlushRoutine()
 
-	logger.SysLog("异步日志缓冲区已初始化，缓冲区大小: %d, 刷新间隔: %v", logBuffer.maxSize, logBuffer.flushTick)
+	common.SysLog(fmt.Sprintf("异步日志缓冲区已初始化，缓冲区大小: %d, 刷新间隔: %v", logBuffer.maxSize, logBuffer.flushTick))
 }
 
 // startFlushRoutine 启动刷新协程
@@ -84,7 +84,7 @@ func (lb *AsyncLogBuffer) flushUnsafe() {
 		if err := LOG_DB.CreateInBatches(logsToFlush, 100).Error; err != nil {
 			logger.LogError(nil, "批量写入日志失败: "+err.Error())
 		} else {
-			logger.SysLog("批量写入 %d 条日志成功", len(logsToFlush))
+			common.SysLog(fmt.Sprintf("批量写入 %d 条日志成功", len(logsToFlush)))
 		}
 	})
 }
@@ -121,18 +121,17 @@ func RecordConsumeLogAsync(c *gin.Context, userId int, params RecordConsumeLogPa
 			TokenName:        params.TokenName,
 			ModelName:        params.ModelName,
 			Quota:            params.Quota,
-			QuotaDelta:       params.QuotaDelta,
-			GroupId:          params.GroupId,
+			ChannelId:        params.ChannelId,
 			TokenId:          params.TokenId,
-			UseTimeSeconds:   params.UseTimeSeconds,
+			UseTime:          params.UseTimeSeconds,
 			IsStream:         params.IsStream,
 			Group:            params.Group,
-			Other:            params.Other,
+			Other:            otherStr,
 		}
 
 		// IP记录处理
 		if needRecordIp {
-			log.IpAddress = c.ClientIP()
+			log.Ip = c.ClientIP()
 		}
 
 		// 添加到异步缓冲区而不是直接写入数据库

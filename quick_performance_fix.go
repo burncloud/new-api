@@ -1,8 +1,7 @@
 package main
 
 import (
-	"encoding/json"
-	"strconv"
+	"fmt"
 	"sync"
 	"time"
 
@@ -56,7 +55,7 @@ func InitPerformanceOptimizations() {
 		}
 	})
 
-	logger.SysLog("激进性能优化已启用 - 缓存TTL: 60s, 日志批量: 1s")
+	common.SysLog("激进性能优化已启用 - 缓存TTL: 60s, 日志批量: 1s")
 }
 
 // GetUserQuotaOptimized 优化版本的用户额度获取
@@ -154,7 +153,7 @@ func flushLogsUnsafe() {
 		if err := model.LOG_DB.Create(&logsToFlush).Error; err != nil {
 			logger.LogError(nil, "批量写入日志失败: "+err.Error())
 		} else {
-			logger.SysLog("批量写入 %d 条日志成功", len(logsToFlush))
+			common.SysLog(fmt.Sprintf("批量写入 %d 条日志成功", len(logsToFlush)))
 		}
 	})
 }
@@ -213,7 +212,7 @@ func GetCacheStats() map[string]int {
 
 // 在程序退出时刷新所有日志
 func FlushAllLogsOnExit() {
-	logger.SysLog("正在刷新所有待写入的日志...")
+	common.SysLog("正在刷新所有待写入的日志...")
 	flushLogs()
 	time.Sleep(2 * time.Second) // 等待异步写入完成
 }
